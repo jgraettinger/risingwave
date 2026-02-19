@@ -1,0 +1,18 @@
+# Kafka transactional control message backfill bug reproduction.
+#
+# When the last record in a Kafka partition is a transaction control record
+# (commit/abort marker), source backfill hangs indefinitely because:
+#   - target_offset = high_watermark - 1, which points to the control record
+#   - read_committed consumers never deliver control records to the application
+#   - The backfill completion condition (offset >= target_offset) is never met
+#
+# This test requires a Kafka broker (from RISEDEV_KAFKA_BOOTSTRAP_SERVERS)
+# and uses a Python script to produce transactional messages.
+
+# This test is run by the Python driver script kafka_txn_backfill.py
+# which handles the transactional producer setup (rpk cannot do this).
+#
+# To reproduce manually:
+#   1. Start RisingWave with Kafka: ./risedev d
+#   2. Run: python3 e2e_test/source_inline/kafka/kafka_txn_backfill.py \
+#             --topic txn-backfill-test --db-name dev --timeout 30
